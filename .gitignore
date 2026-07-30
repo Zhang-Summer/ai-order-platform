@@ -11,4 +11,12 @@ data/
 backup/
 
 .DS_Store
+# database runtime data
+database/postgres/
+database/redis/
 
+# n8n runtime data
+workflow/n8n/
+
+# environment
+.env
