@@ -1,0 +1,149 @@
+services:
+
+  postgres:
+    image: postgres:16.9
+    container_name: ai-order-postgres
+    restart: always
+
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+
+    volumes:
+      - ./database/postgres:/var/lib/postgresql/data
+
+    ports:
+      - "${POSTGRES_PORT}:5432"
+
+    networks:
+      - ai-order-network
+
+
+  redis:
+    image: redis:7.4
+    container_name: ai-order-redis
+    restart: always
+
+    command: redis-server --appendonly yes
+
+    volumes:
+      - ./database/redis:/data
+
+    ports:
+      - "${REDIS_PORT}:6379"
+
+    networks:
+      - ai-order-network
+
+
+
+  n8n:
+    image: n8nio/n8n:1.103.2
+
+    container_name: ai-order-n8n
+
+    restart: always
+
+
+    ports:
+      - "${N8N_PORT}:5678"
+
+    environment:
+
+      TZ: ${TZ}
+
+      N8N_BASIC_AUTH_USER: ${N8N_BASIC_AUTH_USER}
+
+      N8N_BASIC_AUTH_PASSWORD: ${N8N_BASIC_AUTH_PASSWORD}
+
+      N8N_BASIC_AUTH_ACTIVE: true
+
+
+
+      DB_TYPE: postgresdb
+
+      DB_POSTGRESDB_HOST: postgres
+
+      DB_POSTGRESDB_PORT: 5432
+
+      DB_POSTGRESDB_DATABASE: ai_order
+
+      DB_POSTGRESDB_USER: aiorder
+
+      DB_POSTGRESDB_PASSWORD: aiorder_password
+
+
+    volumes:
+
+      - ./workflow/n8n:/home/node/.n8n
+
+
+    depends_on:
+
+      - postgres
+
+
+    networks:
+
+      - ai-order-network
+
+
+
+  api:
+
+    build:
+
+      context: ./api
+
+
+    container_name: ai-order-api
+
+
+    restart: always
+
+
+    ports:
+
+      - "${API_PORT}:8000"
+
+    environment:
+
+      DATABASE_HOST: postgres
+
+      DATABASE_PORT: 5432
+
+      DATABASE_USER: aiorder
+
+      DATABASE_PASSWORD: aiorder_password
+
+      DATABASE_NAME: ai_order
+
+
+      REDIS_HOST: redis
+
+      REDIS_PORT: 6379
+
+
+    volumes:
+
+      - ./api:/app
+
+
+    depends_on:
+
+      - postgres
+      - redis
+
+
+    networks:
+
+      - ai-order-network
+
+
+
+networks:
+
+  ai-order-network:
+
+    driver: bridge
